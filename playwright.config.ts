@@ -12,7 +12,7 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: [['html', { open: 'never' }]],
   use: {
     trace: 'on-first-retry',
   },
@@ -22,5 +22,4 @@ export default defineConfig({
       name: 'API tests',
     },
   ],
-
-});
+})
