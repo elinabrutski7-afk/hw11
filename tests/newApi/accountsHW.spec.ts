@@ -516,5 +516,5 @@ test.describe('POST negative tests', () => {
 
     expect(response.status()).toBe(StatusCodes.NOT_FOUND)
     expect(respBody.error).not.toBeUndefined()
-  })
+  });
 })
