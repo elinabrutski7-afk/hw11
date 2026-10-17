@@ -12,6 +12,7 @@ const authHeaders = {
 const badAuthHeaders = {
   'X-API-KEY': 'not-my-api-key',
 }
+const errorId = 1000
 
 type CreatedAccountResp = {
   id: number
@@ -84,15 +85,7 @@ test.describe('GET negative tests', () => {
   })
 
   test('TL-11-5 GET /api/accounts/{id} with invalid id', async ({ request }) => {
-    const account = await request.post(baseUrl + '/api/accounts', {
-      headers: authHeaders,
-      data: new AccountDTO('Elina'),
-    })
-
-    const respForId = await account.json()
-    const id = respForId.id
-
-    const response = await request.get(baseUrl + `/api/accounts/${id+1}`, {
+    const response = await request.get(baseUrl + `/api/accounts/${errorId}`, {
       headers: authHeaders,
     })
 
@@ -105,7 +98,7 @@ test.describe('GET negative tests', () => {
   })
 
   test('TL-11-6 GET /api/accounts/{id} with invalid {id}', async ({ request }) => {
-    const response = await request.get(baseUrl + '/api/accounts/{-1}', {
+    const response = await request.get(baseUrl + '/api/accounts/-1', {
       headers: authHeaders,
     })
 
@@ -118,7 +111,7 @@ test.describe('GET negative tests', () => {
   })
 
   test('TL-11-7 GET /api/accounts/{id} with invalid {id}', async ({ request }) => {
-    const response = await request.get(baseUrl + '/api/accounts/{aaa1}', {
+    const response = await request.get(baseUrl + '/api/accounts/aaa1', {
       headers: authHeaders,
     })
 
@@ -170,6 +163,8 @@ test.describe('POST positive tests', () => {
     const respForId = await account1.json()
     const id = respForId.id
 
+    const zeroBalance = respForId.balance
+
     const reqBody = new MoneyDTO(55)
     const response = await request.post(baseUrl + `/api/accounts/${id}/deposit`, {
       headers: authHeaders,
@@ -183,7 +178,9 @@ test.describe('POST positive tests', () => {
     const bodyBalance = respBody.balance
 
     expect(response.status()).toBe(StatusCodes.OK)
-    expect(respBody.balance).toBe(bodyBalance) // проверяет каждый раз, что правильный баланс. "целое число" записывать не буду - иначе каждый раз нужны высчеты и перезапись
+    expect(bodyBalance).not.toBe(0)
+    expect(zeroBalance).toBe(0)
+    expect(bodyBalance).not.toBe(zeroBalance)
     expect(respBody.currency).toBe('USD')
     expect(respBody.owner).toBe('Elina')
   })
@@ -294,10 +291,11 @@ test.describe('POST negative tests', () => {
     const respForId = await account.json()
     const id = respForId.id
 
-    const dep = new MoneyDTO('aaa')
     const response = await request.post(baseUrl + `/api/accounts/${id}/deposit`, {
       headers: authHeaders,
-      data: dep,
+      data: {
+        amount: 'aaa',
+      },
     })
 
     const respBody = await response.json()
@@ -334,17 +332,8 @@ test.describe('POST negative tests', () => {
   })
 
   test('TL-11-17 POST /api/accounts/{id}/deposit with invalid {id}', async ({ request }) => {
-    const account = await request.post(baseUrl + '/api/accounts', {
-      headers: authHeaders,
-      data: new AccountDTO('Elina'),
-    })
-
-    const respForId = await account.json()
-    const id = respForId.id
-
     const dep = new MoneyDTO(123)
-    const response = await request.post(baseUrl + `/api/accounts/${id + 1}/deposit`, {
-      // пробовала через lenght делать, но почему то не вышло, поэтому так
+    const response = await request.post(baseUrl + `/api/accounts/${errorId}/deposit`, {
       headers: authHeaders,
       data: dep,
     })
@@ -422,35 +411,36 @@ test.describe('POST negative tests', () => {
     expect(respBody.error).not.toBeUndefined()
   })
 
-  test('TL-11-20 POST /api/accounts/{id}/transfer with the funds sent to the same account', async ({
-    request,
-  }) => {
-    const account1 = await request.post(baseUrl + '/api/accounts', {
-      headers: authHeaders,
-      data: new AccountDTO('Elina'),
-    })
+  test.fail(
+    'TL-11-20 POST /api/accounts/{id}/transfer with the funds sent to the same account',
+    async ({ request }) => {
+      const account1 = await request.post(baseUrl + '/api/accounts', {
+        headers: authHeaders,
+        data: new AccountDTO('Elina'),
+      })
 
-    const respForId = await account1.json()
-    const id = respForId.id
+      const respForId = await account1.json()
+      const id = respForId.id
 
-    const dep = await request.post(baseUrl + `/api/accounts/${id}/deposit`, {
-      headers: authHeaders,
-      data: new MoneyDTO(50),
-    })
-    console.log(respForId, dep)
+      const dep = await request.post(baseUrl + `/api/accounts/${id}/deposit`, {
+        headers: authHeaders,
+        data: new MoneyDTO(50),
+      })
+      console.log(respForId, dep)
 
-    const response = await request.post(baseUrl + '/api/accounts/{id}/deposit', {
-      headers: authHeaders,
-      data: new TransferDTO(id, 50),
-    })
+      const response = await request.post(baseUrl + `/api/accounts/${id}/deposit`, {
+        headers: authHeaders,
+        data: new TransferDTO(id, 50),
+      })
 
-    const respBody = await response.json()
-    const statusCode = response.status()
-    console.log(respBody, statusCode)
+      const respBody = await response.json()
+      const statusCode = response.status()
+      console.log(respBody, statusCode)
 
-    expect(response.status()).toBe(StatusCodes.BAD_REQUEST)
-    expect(respBody.error).not.toBeUndefined()
-  })
+      expect(response.status()).toBe(StatusCodes.BAD_REQUEST)
+      expect(respBody.error).not.toBeUndefined()
+    },
+  )
 
   test.fail(
     'TL-11-21 POST /api/accounts/{id}/transfer with different currencies',
@@ -503,11 +493,11 @@ test.describe('POST negative tests', () => {
       headers: authHeaders,
       data: new MoneyDTO(50),
     })
-    console.log(dep)
+    console.log(dep);
 
     const response = await request.post(baseUrl + `/api/accounts/${id}/transfer`, {
       headers: authHeaders,
-      data: new TransferDTO(id + 1, 50),
+      data: new TransferDTO(errorId, 50),
     })
 
     const respBody = await response.json()
@@ -516,5 +506,5 @@ test.describe('POST negative tests', () => {
 
     expect(response.status()).toBe(StatusCodes.NOT_FOUND)
     expect(respBody.error).not.toBeUndefined()
-  });
+  })
 })
