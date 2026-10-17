@@ -493,7 +493,7 @@ test.describe('POST negative tests', () => {
       headers: authHeaders,
       data: new MoneyDTO(50),
     })
-    console.log(dep);
+    console.log(dep)
 
     const response = await request.post(baseUrl + `/api/accounts/${id}/transfer`, {
       headers: authHeaders,
