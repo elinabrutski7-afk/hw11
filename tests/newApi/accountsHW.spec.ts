@@ -411,7 +411,9 @@ test.describe('POST negative tests', () => {
     expect(respBody.error).not.toBeUndefined()
   })
 
-  test.fail('TL-11-20 POST /api/accounts/{id}/transfer with the funds sent to the same account', async ({ request }) => {
+  test.fail(
+    'TL-11-20 POST /api/accounts/{id}/transfer with the funds sent to the same account',
+    async ({ request }) => {
       const account1 = await request.post(baseUrl + '/api/accounts', {
         headers: authHeaders,
         data: new AccountDTO('Elina'),
@@ -441,7 +443,8 @@ test.describe('POST negative tests', () => {
   )
 
   test.fail(
-    'TL-11-21 POST /api/accounts/{id}/transfer with different currencies', async ({ request }) => {
+    'TL-11-21 POST /api/accounts/{id}/transfer with different currencies',
+    async ({ request }) => {
       const account1 = await request.post(baseUrl + '/api/accounts', {
         headers: authHeaders,
         data: new AccountDTO('Elina', 'USD'),
